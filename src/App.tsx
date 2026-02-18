@@ -345,11 +345,6 @@ function App() {
               สรุปภาพรวมคลังสินค้า
             </h2>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
-                <span className="p-2 bg-blue-100 rounded-xl">📊</span>{" "}
-                สรุปภาพรวมคลังสินค้า
-              </h2>
-
               <button
                 onClick={exportToExcel}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-2xl font-bold text-sm flex items-center gap-2 shadow-lg shadow-emerald-100 transition-all active:scale-95"
