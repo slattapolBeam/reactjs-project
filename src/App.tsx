@@ -17,7 +17,6 @@ interface Product {
 
 function App() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [view, setView] = useState<"inventory" | "logs" | "dashboard">(
     "dashboard",
