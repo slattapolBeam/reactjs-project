@@ -147,13 +147,18 @@ function App() {
   };
 
   if (!user) {
-    return (
-      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-md border-t-8 border-blue-800">
-        <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-md border-t-8 border-blue-800">
-          <div className="text-center mb-8 font-black">
-            <h2 className="text-3xl text-blue-900 uppercase tracking-tighter">E-Tech Shop</h2>
-            <p className="text-slate-500 text-sm mt-1 font-normal">{isSignUp ? "สร้างบัญชีใหม่" : "เข้าสู่ระบบคลังสินค้า"}</p>
-          </div>
+  return (
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 font-sans text-slate-800">
+      {/* เพิ่ม mx-auto เพื่อบังคับให้ Margin ซ้ายขวาเท่ากันครับ */}
+      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border-t-8 border-blue-800 mx-auto">
+        <div className="text-center mb-8 font-black">
+          <h2 className="text-3xl text-blue-900 uppercase tracking-tighter">
+            E-Tech Shop
+          </h2>
+          <p className="text-slate-500 text-sm mt-1 font-normal">
+            {isSignUp ? "สร้างบัญชีใหม่" : "เข้าสู่ระบบคลังสินค้า"}
+          </p>
+        </div>
           <form onSubmit={isSignUp ? (e) => { e.preventDefault(); supabase.auth.signUp({ email, password }).then(({ error }) => error ? alert(error.message) : alert("สำเร็จ!")); } : (e) => { e.preventDefault(); supabase.auth.signInWithPassword({ email, password }).then(({ error }) => error && alert(error.message)); }} className="space-y-4">
             <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500" />
             <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500" />
