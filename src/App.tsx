@@ -148,7 +148,7 @@ function App() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 font-sans text-slate-800">
+      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-md border-t-8 border-blue-800">
         <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-md border-t-8 border-blue-800">
           <div className="text-center mb-8 font-black">
             <h2 className="text-3xl text-blue-900 uppercase tracking-tighter">E-Tech Shop</h2>
