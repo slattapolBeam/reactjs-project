@@ -103,6 +103,42 @@ function App() {
     }
   };
   // --- 4. ฟังก์ชันจัดการสต็อก/สินค้า ---
+  const Scanner = () => {
+    useEffect(() => {
+      // 1. สร้างตัว Scanner
+      const scanner = new Html5QrcodeScanner(
+        "reader", // ชื่อ id ของ div ที่จะให้กล้องแสดง
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        /* verbose= */ false,
+      );
+
+      // 2. สั่งให้เริ่มทำงาน
+      scanner.render(
+        (decodedText) => {
+          // ถ้าสแกนเจอ จะให้ทำอะไร? เช่น ค้นหาสินค้า
+          console.log("สแกนเจอแล้ว!:", decodedText);
+          alert("รหัสสินค้าคือ: " + decodedText);
+          scanner.clear(); // สแกนเสร็จแล้วปิดกล้อง
+        },
+        (error) => {
+          // กรณีหาไม่เจอ (มันจะรันตลอดเวลาที่กล้องเปิด)
+        },
+      );
+
+      // 3. Clean up เมื่อปิดหน้าจอ
+      return () => {
+    // ใช้ .catch เพื่อจัดการกับ Promise แทนการใช้ await
+    scanner.clear().catch(error => console.error("Failed to clear", error));
+  };
+}, []);
+
+    return (
+      <div>
+        <h2 className="text-xl font-bold mb-4">สแกนรหัสสินค้า</h2>
+        <div id="reader"></div> {/* กล้องจะมาโผล่ตรงนี้ครับ */}
+      </div>
+    );
+  };
   const handleUpdateStock = async (
     id: number,
     currentStock: number,
@@ -363,9 +399,10 @@ function App() {
       <main className="max-w-5xl mx-auto p-6 transition-all duration-500 ease-in-out">
         <div key={view} className="animate-fade-up">
           {view === "dashboard" && (
-            <Dashboard stats={stats} 
-            onExport={exportToExcel}
-            userName={user?.user_metadata?.full_name || "คุณผู้ใช้งาน"}
+            <Dashboard
+              stats={stats}
+              onExport={exportToExcel}
+              userName={user?.user_metadata?.full_name || "คุณผู้ใช้งาน"}
             />
           )}
           {view === "inventory" && (
