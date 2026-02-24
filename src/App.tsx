@@ -31,7 +31,7 @@ const QRScanner = ({ onScan }: { onScan: (text: string) => void }) => {
         onScan(text);
         scanner.clear();
       },
-      () => {}
+      () => { }
     );
     return () => {
       scanner.clear().catch((err) => console.error("Scanner clear error", err));
@@ -83,8 +83,16 @@ function App() {
 
   const saveLog = async (action: string, details: string) => {
     if (!user) return;
+    // ดึงชื่อจาก Metadata ถ้าไม่มีให้ใช้อีเมล
     const displayName = user.user_metadata?.full_name || user.email;
-    await supabase.from("logs").insert([{ user_email: displayName, action, details }]);
+
+    await supabase.from("logs").insert([
+      {
+        user_email: displayName, // ตัวแปรนี้จะเก็บชื่อคนที่ทำรายการ
+        action,
+        details
+      }
+    ]);
   };
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -254,19 +262,62 @@ function App() {
         </div>
       </nav>
 
-      <main className="max-w-5xl mx-auto p-6">
-        {isScanning && <QRScanner onScan={(text) => { alert("สแกนเจอ: " + text); setIsScanning(false); }} />}
-        
-        {view === "dashboard" && <Dashboard stats={stats} onExport={exportToExcel} userName={user?.user_metadata?.full_name || "คุณผู้ใช้งาน"} />}
-        {view === "inventory" && (
-          <Inventory 
-            products={filteredProducts} searchTerm={searchTerm} setSearchTerm={setSearchTerm}
-            isScanning={isScanning} setIsScanning={setIsScanning} filterLowStock={filterLowStock} setFilterLowStock={setFilterLowStock}
-            onAdd={handleAddProduct} onUpdateStock={handleUpdateStock} onUpdatePrice={handleUpdatePrice} onDelete={handleDelete}
-            addForm={{ name: newName, setName: setNewName, price: newPrice, setPrice: setNewPrice, stock: newStock, setStock: setNewStock }}
-          />
+      <main className="max-w-5xl mx-auto p-6 transition-all duration-500 ease-in-out">
+        {/* ส่วน Scanner พร้อม Animation */}
+        {isScanning && (
+          <div className="animate-fade-down">
+            <QRScanner
+              onScan={(text) => {
+                alert("สแกนเจอ: " + text);
+                setIsScanning(false);
+              }}
+            />
+            <button
+              onClick={() => setIsScanning(false)}
+              className="mb-6 w-full bg-red-100 text-red-600 py-2 rounded-xl font-bold hover:bg-red-200 transition-all"
+            >
+              ปิดกล้องสแกน
+            </button>
+          </div>
         )}
-        {view === "logs" && <HistoryLogs logs={auditLogs} onRefresh={fetchLogs} />}
+
+        {/* ใส่ key={view} กลับมาเพื่อให้ React รู้ว่าต้องเล่น Animation ใหม่เวลาเปลี่ยนหน้า */}
+        <div key={view} className="animate-fade-up duration-500">
+          {view === "dashboard" && (
+            <Dashboard
+              stats={stats}
+              onExport={exportToExcel}
+              products={products}
+              userName={user?.user_metadata?.full_name || "คุณผู้ใช้งาน"}
+            />
+          )}
+          {view === "inventory" && (
+            <Inventory
+              products={filteredProducts}
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              isScanning={isScanning}
+              setIsScanning={setIsScanning}
+              filterLowStock={filterLowStock}
+              setFilterLowStock={setFilterLowStock}
+              onAdd={handleAddProduct}
+              onUpdateStock={handleUpdateStock}
+              onUpdatePrice={handleUpdatePrice}
+              onDelete={handleDelete}
+              addForm={{
+                name: newName,
+                setName: setNewName,
+                price: newPrice,
+                setPrice: setNewPrice,
+                stock: newStock,
+                setStock: setNewStock
+              }}
+            />
+          )}
+          {view === "logs" && (
+            <HistoryLogs logs={auditLogs} onRefresh={fetchLogs} />
+          )}
+        </div>
       </main>
     </div>
   );
