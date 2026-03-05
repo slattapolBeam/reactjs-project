@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import { Html5QrcodeScanner } from "html5-qrcode";
 import { HistoryLogs } from "./components/HistoryLogs";
 import { Inventory } from "./components/Inventory";
 import { Dashboard } from "./components/Dashboard";
@@ -18,30 +17,16 @@ interface Product {
   stock: number;
 }
 
-const QRScanner = ({ onScan }: { onScan: (text: string) => void }) => {
-  useEffect(() => {
-    const scanner = new Html5QrcodeScanner(
-      "reader",
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      false
-    );
-    scanner.render((text) => { onScan(text); scanner.clear(); }, () => { });
-    return () => { scanner.clear().catch((err) => console.error(err)); };
-  }, [onScan]);
-  return (
-    <div className="bg-white p-4 rounded-2xl shadow-inner border-2 border-dashed border-blue-200 mb-6 text-center">
-      <h2 className="font-bold text-blue-800 mb-2">วาง QR Code ในกรอบ</h2>
-      <div id="reader"></div>
-    </div>
-  );
-};
+// ลบ QRScanner Component ออกถ้าไม่ได้ใช้ในหน้านี้แล้ว เพื่อลดความหนักของไฟล์
 
 function App() {
+  // --- State ---
   const [products, setProducts] = useState<Product[]>([]);
   const [user, setUser] = useState<any>(null);
   const [view, setView] = useState<"inventory" | "logs" | "dashboard">("dashboard");
   const [loading, setLoading] = useState(false);
 
+  // Auth States
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -49,10 +34,13 @@ function App() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
 
+  // Inventory States
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterLowStock, setFilterLowStock] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
+  
+  // ✅ ลบ isScanning state ออกไปแล้วเพื่อแก้ Build Error
+  
   const [newName, setNewName] = useState("");
   const [newPrice, setNewPrice] = useState("");
   const [newStock, setNewStock] = useState("0");
@@ -74,7 +62,6 @@ function App() {
   const fetchSalesData = async () => {
     const { data: sales } = await supabase.from("sales").select("*").order("created_at", { ascending: true });
     if (sales) {
-      // 📊 ประมวลผลกราฟ 7 วัน
       const days = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
       const last7Days = Array.from({ length: 7 }, (_, i) => {
         const d = new Date();
@@ -89,7 +76,6 @@ function App() {
       });
       setSalesData(last7Days);
 
-      // 🏆 คำนวณอันดับสินค้าขายดี
       const counts: any = {};
       sales.forEach(sale => { counts[sale.product_name] = (counts[sale.product_name] || 0) + 1; });
       const top3 = Object.entries(counts)
@@ -221,7 +207,7 @@ function App() {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <nav className="bg-white border-b sticky top-0 z-50 py-3 px-4 shadow-sm">
         <div className="max-w-5xl mx-auto flex justify-between items-center">
-          <h1 className="text-xl font-black text-blue-900 italic">E-TECH <span className="text-blue-500">INVENTORY</span></h1>
+          <h1 className="text-xl font-black text-blue-900 italic uppercase">E-Tech <span className="text-blue-500 italic">Inventory</span></h1>
           <div className="hidden md:flex gap-1 bg-slate-100 p-1 rounded-2xl border">
             {["dashboard", "inventory", "logs"].map((v) => (
               <button key={v} onClick={() => setView(v as any)} className={`px-5 py-2 rounded-xl text-xs font-bold transition-all ${view === v ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"}`}>
@@ -234,13 +220,6 @@ function App() {
       </nav>
 
       <main className="max-w-5xl mx-auto p-6">
-        {isScanning && (
-          <div className="animate-fade-down">
-            <QRScanner onScan={(text) => { alert("Scanned: " + text); setIsScanning(false); }} />
-            <button onClick={() => setIsScanning(false)} className="mb-6 w-full bg-red-100 text-red-600 py-2 rounded-xl font-bold">Close Scanner</button>
-          </div>
-        )}
-
         <div key={view} className="animate-fade-up">
           {view === "dashboard" && (
             <Dashboard
@@ -257,8 +236,6 @@ function App() {
               products={filteredProducts}
               searchTerm={searchTerm}
               setSearchTerm={setSearchTerm}
-              isScanning={isScanning}
-              setIsScanning={setIsScanning}
               filterLowStock={filterLowStock}
               setFilterLowStock={setFilterLowStock}
               onAdd={handleAddProduct}

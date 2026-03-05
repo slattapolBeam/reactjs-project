@@ -4,8 +4,6 @@ interface InventoryProps {
   products: any[];
   searchTerm: string;
   setSearchTerm: (val: string) => void;
-  isScanning: boolean;
-  setIsScanning: (val: boolean) => void;
   filterLowStock: boolean;
   setFilterLowStock: (val: boolean) => void;
   onAdd: (e: any) => void;
@@ -31,7 +29,6 @@ export const Inventory = ({
   products,
   searchTerm,
   setSearchTerm,
-  setIsScanning,
   filterLowStock,
   setFilterLowStock,
   onAdd,
@@ -63,12 +60,6 @@ export const Inventory = ({
           />
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={() => setIsScanning(true)}
-            className="px-6 py-3.5 bg-slate-800 text-white rounded-2xl font-bold text-sm hover:bg-slate-700 transition-all active:scale-95"
-          >
-            📷 สแกน QR
-          </button>
           <button
             onClick={() => setFilterLowStock(!filterLowStock)}
             className={`px-6 py-3.5 rounded-2xl font-bold text-xs border transition-all active:scale-95 ${
