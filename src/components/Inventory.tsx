@@ -9,7 +9,12 @@ interface InventoryProps {
   filterLowStock: boolean;
   setFilterLowStock: (val: boolean) => void;
   onAdd: (e: any) => void;
-  onUpdateStock: (id: number, current: number, change: number, name: string) => void;
+  onUpdateStock: (
+    id: number,
+    current: number,
+    change: number,
+    name: string,
+  ) => void;
   onUpdatePrice: (id: number, current: number, name: string) => void;
   onDelete: (id: number, name: string) => void;
   addForm: {
@@ -68,7 +73,9 @@ export const Inventory = ({
           <button
             onClick={() => setFilterLowStock(!filterLowStock)}
             className={`px-6 py-3.5 rounded-2xl font-bold text-xs border transition-all active:scale-95 ${
-              filterLowStock ? "bg-red-500 text-white border-red-500" : "bg-white text-slate-800 border-slate-200"
+              filterLowStock
+                ? "bg-red-500 text-white border-red-500"
+                : "bg-white text-slate-800 border-slate-200"
             }`}
           >
             สต็อกต่ำ
@@ -77,7 +84,9 @@ export const Inventory = ({
           <button
             onClick={() => setIsAddFormOpen(!isAddFormOpen)}
             className={`px-6 py-3.5 rounded-2xl font-bold text-sm transition-all active:scale-95 flex items-center gap-2 ${
-              isAddFormOpen ? "bg-slate-200 text-slate-600" : "bg-blue-700 text-white shadow-lg shadow-blue-200"
+              isAddFormOpen
+                ? "bg-slate-200 text-slate-600"
+                : "bg-blue-700 text-white shadow-lg shadow-blue-200"
             }`}
           >
             {isAddFormOpen ? "✖ ยกเลิก" : "➕ เพิ่มสินค้า"}
@@ -89,10 +98,13 @@ export const Inventory = ({
       {isAddFormOpen && (
         <div className="bg-white rounded-3xl p-6 border-2 border-blue-100 shadow-xl mb-8 animate-fade-down">
           <div className="flex items-center gap-2 mb-4 text-blue-900 font-bold">
-             <span className="bg-blue-100 p-2 rounded-lg">📦</span>
-             กรอกข้อมูลสินค้าใหม่
+            <span className="bg-blue-100 p-2 rounded-lg">📦</span>
+            กรอกข้อมูลสินค้าใหม่
           </div>
-          <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-3 text-sm">
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-col md:flex-row gap-3 text-sm"
+          >
             <input
               className="flex-1 px-4 py-3 border border-slate-200 rounded-xl outline-none focus:border-blue-500"
               placeholder="ชื่อสินค้า"
@@ -125,7 +137,9 @@ export const Inventory = ({
           </form>
         </div>
       )}
-
+      <h2 className="text-3xl font-black text-slate-800 tracking-tighter uppercase mb-8">
+        หน้าคลังสินค้า
+      </h2>
       {/* รายการสินค้า */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {products.map((product) => (
@@ -140,11 +154,13 @@ export const Inventory = ({
               <div className="flex gap-2">
                 <button
                   className="hover:bg-blue-50 p-1 rounded-lg transition-colors"
-                  onClick={() => onUpdatePrice(product.id, product.price, product.name)}
+                  onClick={() =>
+                    onUpdatePrice(product.id, product.price, product.name)
+                  }
                 >
                   ✏️
                 </button>
-                <button 
+                <button
                   className="hover:bg-red-50 p-1 rounded-lg transition-colors"
                   onClick={() => onDelete(product.id, product.name)}
                 >
@@ -159,16 +175,22 @@ export const Inventory = ({
               <span className="text-xs font-bold text-slate-400">คงเหลือ</span>
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => onUpdateStock(product.id, product.stock, -1, product.name)}
+                  onClick={() =>
+                    onUpdateStock(product.id, product.stock, -1, product.name)
+                  }
                   className="w-10 h-10 bg-white border border-slate-200 rounded-xl shadow-sm font-bold hover:bg-slate-50 active:scale-90 transition-all"
                 >
                   -
                 </button>
-                <span className={`text-xl font-black min-w-[30px] text-center ${product.stock < 5 ? "text-red-600 animate-pulse" : "text-slate-800"}`}>
+                <span
+                  className={`text-xl font-black min-w-[30px] text-center ${product.stock < 5 ? "text-red-600 animate-pulse" : "text-slate-800"}`}
+                >
                   {product.stock}
                 </span>
                 <button
-                  onClick={() => onUpdateStock(product.id, product.stock, 1, product.name)}
+                  onClick={() =>
+                    onUpdateStock(product.id, product.stock, 1, product.name)
+                  }
                   className="w-10 h-10 bg-white border border-slate-200 rounded-xl shadow-sm font-bold hover:bg-slate-50 active:scale-90 transition-all"
                 >
                   +

@@ -18,7 +18,6 @@ interface Product {
   stock: number;
 }
 
-// ✅ 1. ย้าย Scanner ออกมาไว้นอก App เพื่อป้องกันการ Re-render จนกล้องค้าง
 const QRScanner = ({ onScan }: { onScan: (text: string) => void }) => {
   useEffect(() => {
     const scanner = new Html5QrcodeScanner(
@@ -26,34 +25,23 @@ const QRScanner = ({ onScan }: { onScan: (text: string) => void }) => {
       { fps: 10, qrbox: { width: 250, height: 250 } },
       false
     );
-    scanner.render(
-      (text) => {
-        onScan(text);
-        scanner.clear();
-      },
-      () => { }
-    );
-    return () => {
-      scanner.clear().catch((err) => console.error("Scanner clear error", err));
-    };
+    scanner.render((text) => { onScan(text); scanner.clear(); }, () => { });
+    return () => { scanner.clear().catch((err) => console.error(err)); };
   }, [onScan]);
-
   return (
-    <div className="bg-white p-4 rounded-2xl shadow-inner border-2 border-dashed border-blue-200 mb-6">
-      <h2 className="text-center font-bold text-blue-800 mb-2">วาง QR Code ในกรอบ</h2>
+    <div className="bg-white p-4 rounded-2xl shadow-inner border-2 border-dashed border-blue-200 mb-6 text-center">
+      <h2 className="font-bold text-blue-800 mb-2">วาง QR Code ในกรอบ</h2>
       <div id="reader"></div>
     </div>
   );
 };
 
 function App() {
-  // --- State ---
   const [products, setProducts] = useState<Product[]>([]);
   const [user, setUser] = useState<any>(null);
   const [view, setView] = useState<"inventory" | "logs" | "dashboard">("dashboard");
   const [loading, setLoading] = useState(false);
 
-  // Auth States
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -61,7 +49,6 @@ function App() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
 
-  // Inventory States
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterLowStock, setFilterLowStock] = useState(false);
@@ -69,6 +56,9 @@ function App() {
   const [newName, setNewName] = useState("");
   const [newPrice, setNewPrice] = useState("");
   const [newStock, setNewStock] = useState("0");
+
+  const [salesData, setSalesData] = useState<any[]>([]);
+  const [topSellingProducts, setTopSellingProducts] = useState<any[]>([]);
 
   // --- Functions ---
   const fetchProducts = async () => {
@@ -81,49 +71,55 @@ function App() {
     if (data) setAuditLogs(data);
   };
 
+  const fetchSalesData = async () => {
+    const { data: sales } = await supabase.from("sales").select("*").order("created_at", { ascending: true });
+    if (sales) {
+      // 📊 ประมวลผลกราฟ 7 วัน
+      const days = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.'];
+      const last7Days = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        return { day: days[d.getDay()], date: d.toLocaleDateString(), amount: 0 };
+      }).reverse();
+
+      sales.forEach(sale => {
+        const saleDate = new Date(sale.created_at).toLocaleDateString();
+        const dayMatch = last7Days.find(d => d.date === saleDate);
+        if (dayMatch) dayMatch.amount += Number(sale.amount);
+      });
+      setSalesData(last7Days);
+
+      // 🏆 คำนวณอันดับสินค้าขายดี
+      const counts: any = {};
+      sales.forEach(sale => { counts[sale.product_name] = (counts[sale.product_name] || 0) + 1; });
+      const top3 = Object.entries(counts)
+        .map(([name, count]) => ({ name, units_sold: count as number, price: 0 }))
+        .sort((a, b) => b.units_sold - a.units_sold)
+        .slice(0, 3);
+      setTopSellingProducts(top3);
+    }
+  };
+
   const saveLog = async (action: string, details: string) => {
     if (!user) return;
-    // ดึงชื่อจาก Metadata ถ้าไม่มีให้ใช้อีเมล
     const displayName = user.user_metadata?.full_name || user.email;
-
-    await supabase.from("logs").insert([
-      {
-        user_email: displayName, // ตัวแปรนี้จะเก็บชื่อคนที่ทำรายการ
-        action,
-        details
-      }
-    ]);
+    await supabase.from("logs").insert([{ user_email: displayName, action, details }]);
   };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSignUp) {
-      if (password !== confirmPassword) return alert("รหัสผ่านไม่ตรงกัน!");
-      if (password.length < 6) return alert("รหัสผ่านต้อง 6 ตัวขึ้นไป");
-    }
-
     setLoading(true);
-    // หน่วงเวลา 1 วินาทีให้เห็น Loading
-    await new Promise(res => setTimeout(res, 1000));
-
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { data: { full_name: `${firstName} ${lastName}`.trim() } },
-        });
+        if (password !== confirmPassword) throw new Error("รหัสผ่านไม่ตรงกัน!");
+        const { error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: `${firstName} ${lastName}`.trim() } } });
         if (error) throw error;
         alert("สมัครสมาชิกสำเร็จ!");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw new Error("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
       }
-    } catch (err: any) {
-      alert(err.message);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err: any) { alert(err.message); } finally { setLoading(false); }
   };
 
   const handleUpdateStock = async (id: number, currentStock: number, change: number, name: string) => {
@@ -150,10 +146,7 @@ function App() {
   const handleDelete = async (id: number, name: string) => {
     if (window.confirm(`ลบสินค้า "${name}" ใช่หรือไม่?`)) {
       const { error } = await supabase.from("products").delete().eq("id", id);
-      if (!error) {
-        await saveLog("ลบสินค้า", `ลบ ${name} ออกจากระบบ`);
-        fetchProducts();
-      }
+      if (!error) { await saveLog("ลบสินค้า", `ลบ ${name} ออกจากระบบ`); fetchProducts(); }
     }
   };
 
@@ -161,14 +154,10 @@ function App() {
     const p = prompt(`ระบุราคาใหม่สำหรับ ${name}:`, currentPrice.toString());
     if (p) {
       const { error } = await supabase.from("products").update({ price: Number(p) }).eq("id", id);
-      if (!error) {
-        await saveLog("แก้ไขราคา", `เปลี่ยนราคา ${name} เป็น ${p} บ.`);
-        fetchProducts();
-      }
+      if (!error) { await saveLog("แก้ไขราคา", `เปลี่ยนราคา ${name} เป็น ${p} บ.`); fetchProducts(); }
     }
   };
 
-  // --- Effects ---
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setUser(session?.user ?? null));
@@ -176,16 +165,17 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (user) { fetchProducts(); fetchLogs(); }
+    if (user) { fetchProducts(); fetchLogs(); fetchSalesData(); }
   }, [user, view]);
 
-  // --- Helpers ---
   const filteredProducts = products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()) && (filterLowStock ? p.stock < 5 : true));
+  
   const stats = {
     totalValue: products.reduce((sum, p) => sum + p.price * p.stock, 0),
     totalItems: products.reduce((sum, p) => sum + p.stock, 0),
     lowStockItems: products.filter(p => p.stock < 5).length,
     topAction: auditLogs.slice(0, 5),
+    totalSales: salesData.reduce((sum, d) => sum + d.amount, 0)
   };
 
   const exportToExcel = () => {
@@ -199,14 +189,13 @@ function App() {
     link.click();
   };
 
-  // --- UI Login ---
   if (!user) {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
         <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border-t-8 border-blue-800">
           <div className="text-center mb-8">
-            <h2 className="text-3xl font-black text-blue-900 uppercase">E-Tech Shop</h2>
-            <p className="text-slate-500 text-sm">{isSignUp ? "สร้างบัญชีใหม่" : "เข้าสู่ระบบเพื่อจัดการสต็อก"}</p>
+            <h2 className="text-3xl font-black text-blue-900 uppercase italic">E-Tech Shop</h2>
+            <p className="text-slate-500 text-sm">{isSignUp ? "สร้างบัญชีใหม่" : "เข้าสู่ระบบจัดการสต็อก"}</p>
           </div>
           <form onSubmit={handleAuth} className="space-y-4">
             {isSignUp && (
@@ -218,77 +207,49 @@ function App() {
             <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full px-4 py-3 rounded-xl border outline-none focus:ring-2 focus:ring-blue-500" required />
             <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full px-4 py-3 rounded-xl border outline-none focus:ring-2 focus:ring-blue-500" required />
             {isSignUp && <input type="password" placeholder="Confirm Password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="w-full px-4 py-3 rounded-xl border outline-none focus:ring-2 focus:ring-blue-500" required />}
-            <button type="submit" disabled={loading} className={`w-full py-3 px-4 rounded-xl font-bold text-white transition-all duration-200 shadow-lg active:scale-95 ${loading ? 'bg-slate-400 cursor-not-allowed' : isSignUp ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-800 hover:bg-blue-900'}`}>
-              {loading ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  กำลังดำเนินการ...
-                </div>
-              ) : (isSignUp ? "สมัครสมาชิกใหม่" : "เข้าสู่ระบบ")}
+            <button type="submit" disabled={loading} className={`w-full py-3 rounded-xl font-bold text-white transition-all shadow-lg active:scale-95 ${loading ? 'bg-slate-400' : isSignUp ? 'bg-emerald-600' : 'bg-blue-800'}`}>
+              {loading ? "กำลังดำเนินการ..." : isSignUp ? "สมัครสมาชิก" : "เข้าสู่ระบบ"}
             </button>
           </form>
-          <div className="mt-6 text-center">
-            <button onClick={() => setIsSignUp(!isSignUp)} className="text-sm text-blue-600 hover:underline font-medium">
-              {isSignUp ? "มีบัญชีอยู่แล้ว? เข้าสู่ระบบ" : "ยังไม่มีบัญชี? สมัครสมาชิกที่นี่"}
-            </button>
-          </div>
+          <button onClick={() => setIsSignUp(!isSignUp)} className="w-full mt-6 text-sm text-blue-600 font-medium">{isSignUp ? "มีบัญชีอยู่แล้ว? เข้าสู่ระบบ" : "สมัครสมาชิกที่นี่"}</button>
         </div>
       </div>
     );
   }
 
-  // --- UI Main ---
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <nav className="bg-white border-b sticky top-0 z-50 py-3 px-4 shadow-sm">
         <div className="max-w-5xl mx-auto flex justify-between items-center">
-          <div className="flex flex-col">
-            <h1 className="text-xl font-black text-blue-900 leading-none">E-TECH <span className="text-blue-500">INVENTORY</span></h1>
-            <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">Smart Management System</p>
-          </div>
+          <h1 className="text-xl font-black text-blue-900 italic">E-TECH <span className="text-blue-500">INVENTORY</span></h1>
           <div className="hidden md:flex gap-1 bg-slate-100 p-1 rounded-2xl border">
             {["dashboard", "inventory", "logs"].map((v) => (
               <button key={v} onClick={() => setView(v as any)} className={`px-5 py-2 rounded-xl text-xs font-bold transition-all ${view === v ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"}`}>
-                {v === "dashboard" ? "สรุปภาพรวม" : v === "inventory" ? "คลังสินค้า" : "ประวัติ"}
+                {v === "dashboard" ? "Dashboard" : v === "inventory" ? "Inventory" : "History"}
               </button>
             ))}
           </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-black text-slate-800">สวัสดี! {user?.user_metadata?.full_name?.split(" ")[0] || "คุณผู้ใช้งาน"}</p>
-            </div>
-            <button onClick={() => supabase.auth.signOut()} className="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-red-600 active:scale-95 transition-all">ออกจากระบบ</button>
-          </div>
+          <button onClick={() => supabase.auth.signOut()} className="bg-slate-900 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-red-600 transition-all">Sign Out</button>
         </div>
       </nav>
 
-      <main className="max-w-5xl mx-auto p-6 transition-all duration-500 ease-in-out">
-        {/* ส่วน Scanner พร้อม Animation */}
+      <main className="max-w-5xl mx-auto p-6">
         {isScanning && (
           <div className="animate-fade-down">
-            <QRScanner
-              onScan={(text) => {
-                alert("สแกนเจอ: " + text);
-                setIsScanning(false);
-              }}
-            />
-            <button
-              onClick={() => setIsScanning(false)}
-              className="mb-6 w-full bg-red-100 text-red-600 py-2 rounded-xl font-bold hover:bg-red-200 transition-all"
-            >
-              ปิดกล้องสแกน
-            </button>
+            <QRScanner onScan={(text) => { alert("Scanned: " + text); setIsScanning(false); }} />
+            <button onClick={() => setIsScanning(false)} className="mb-6 w-full bg-red-100 text-red-600 py-2 rounded-xl font-bold">Close Scanner</button>
           </div>
         )}
 
-        {/* ใส่ key={view} กลับมาเพื่อให้ React รู้ว่าต้องเล่น Animation ใหม่เวลาเปลี่ยนหน้า */}
-        <div key={view} className="animate-fade-up duration-500">
+        <div key={view} className="animate-fade-up">
           {view === "dashboard" && (
             <Dashboard
               stats={stats}
-              onExport={exportToExcel}
               products={products}
-              userName={user?.user_metadata?.full_name || "คุณผู้ใช้งาน"}
+              salesTrend={salesData}
+              topSelling={topSellingProducts}
+              onExport={exportToExcel}
+              userName={user?.user_metadata?.full_name || "Admin"}
             />
           )}
           {view === "inventory" && (
@@ -304,19 +265,10 @@ function App() {
               onUpdateStock={handleUpdateStock}
               onUpdatePrice={handleUpdatePrice}
               onDelete={handleDelete}
-              addForm={{
-                name: newName,
-                setName: setNewName,
-                price: newPrice,
-                setPrice: setNewPrice,
-                stock: newStock,
-                setStock: setNewStock
-              }}
+              addForm={{ name: newName, setName: setNewName, price: newPrice, setPrice: setNewPrice, stock: newStock, setStock: setNewStock }}
             />
           )}
-          {view === "logs" && (
-            <HistoryLogs logs={auditLogs} onRefresh={fetchLogs} />
-          )}
+          {view === "logs" && <HistoryLogs logs={auditLogs} onRefresh={fetchLogs} />}
         </div>
       </main>
     </div>
