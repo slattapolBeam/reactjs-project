@@ -31,7 +31,6 @@ export const Inventory = ({
   products,
   searchTerm,
   setSearchTerm,
-  isScanning,
   setIsScanning,
   filterLowStock,
   setFilterLowStock,
