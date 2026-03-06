@@ -498,7 +498,7 @@ function App() {
         productId={imageModal.id}
         productName={imageModal.name}
         currentImageUrl={imageModal.imageUrl}
-        onSuccess={(url) => {
+        onSuccess={() => {
           fetchProducts();
         }}
         onClose={() => setImageModal((p) => ({ ...p, isOpen: false }))}
