@@ -62,7 +62,7 @@ export const DeleteConfirmModal = ({
             ยกเลิก
           </button>
           <button
-            onClick={() => { onConfirm(); onClose(); }}
+            onClick={onConfirm}
             className="flex-1 py-3 rounded-2xl bg-red-500 text-white font-bold text-sm hover:bg-red-600 transition-all active:scale-95 shadow-lg shadow-red-100"
           >
             ลบสินค้า

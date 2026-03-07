@@ -106,12 +106,14 @@ export const useInventory = (user: any) => {
   };
 
   const handleConfirmDelete = async (id: number, name: string) => {
-    const { error } = await supabase.from("products").delete().eq("id", id);
-    if (!error) {
-      await saveLog("ลบสินค้า", `ลบ ${name} ออกจากระบบ`);
-      fetchProducts();
-    }
-  };
+  console.log("🗑️ กำลังลบ id:", id, "name:", name); // ← เพิ่มตรงนี้
+  const { error, data } = await supabase.from("products").delete().eq("id", id).select();
+  console.log("ผลลัพธ์:", { error, data }); // ← และตรงนี้
+  if (!error) {
+    await saveLog("ลบสินค้า", `ลบ ${name} ออกจากระบบ`);
+    fetchProducts();
+  }
+};
 
   const handleConfirmPrice = async (id: number, name: string, newPrice: number) => {
     const { error } = await supabase.from("products").update({ price: newPrice }).eq("id", id);

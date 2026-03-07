@@ -4,11 +4,12 @@ import { Inventory } from "./components/Inventory";
 import { Dashboard } from "./components/Dashboard";
 import { EditPriceModal } from "./components/EditPriceModal";
 import { DeleteConfirmModal } from "./components/DeleteConfirmModal";
+import { DeleteSuccessModal } from "./components/Deletesuccessmodal";
 import { Pagination } from "./components/Pagination";
 import { ImageUploadModal } from "./components/Imageuploadmodal";
 import { LoginPage } from "./components/Loginpage";
-import { useAuth } from "./hooks/useAuth";
-import { useInventory } from "./hooks/useInventory";
+import { useAuth } from "./hooks/Useauth";
+import { useInventory } from "./hooks/Useinventory";
 import { useModals } from "./hooks/Usemodals";
 
 type View = "inventory" | "logs" | "dashboard";
@@ -18,14 +19,12 @@ function App() {
   const [newName, setNewName] = useState("");
   const [newPrice, setNewPrice] = useState("");
   const [newStock, setNewStock] = useState("0");
+  const [deleteSuccess, setDeleteSuccess] = useState({ isOpen: false, name: "" });
 
   const auth = useAuth();
-
   const inventory = useInventory(auth.user);
-
   const modals = useModals();
 
-  // โหลดข้อมูลเมื่อ login หรือเปลี่ยน view
   useEffect(() => {
     if (auth.user) {
       inventory.fetchProducts();
@@ -34,13 +33,19 @@ function App() {
     }
   }, [auth.user, view]);
 
+  const handleConfirmDelete = async () => {
+    const { id, name } = modals.deleteModal;
+    modals.closeDeleteModal();
+    await inventory.handleConfirmDelete(id, name);
+    setDeleteSuccess({ isOpen: true, name });
+  };
+
   if (!auth.user) {
     return <LoginPage {...auth} onSubmit={auth.handleAuth} />;
   }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      {/* Navbar */}
       <nav className="bg-white border-b sticky top-0 z-50 py-3 px-4 shadow-sm">
         <div className="max-w-5xl mx-auto flex justify-between items-center">
           <h1 className="text-xl font-black text-blue-900 italic uppercase">
@@ -51,7 +56,9 @@ function App() {
               <button
                 key={v}
                 onClick={() => setView(v)}
-                className={`px-5 py-2 rounded-xl text-xs font-bold transition-all ${view === v ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"}`}
+                className={`px-5 py-2 rounded-xl text-xs font-bold transition-all ${
+                  view === v ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"
+                }`}
               >
                 {v === "dashboard" ? "Dashboard" : v === "inventory" ? "Inventory" : "History"}
               </button>
@@ -66,7 +73,6 @@ function App() {
         </div>
       </nav>
 
-      {/* Main Content */}
       <main className="max-w-5xl mx-auto p-6">
         <div key={view} className="animate-fade-up">
           {view === "dashboard" && (
@@ -88,7 +94,8 @@ function App() {
                 setSearchTerm={inventory.setSearchTerm}
                 filterLowStock={inventory.filterLowStock}
                 setFilterLowStock={inventory.setFilterLowStock}
-                onAdd={(e) => inventory.handleAddProduct(e,
+                onAdd={(e) => inventory.handleAddProduct(
+                  e,
                   { name: newName, price: newPrice, stock: newStock },
                   () => { setNewName(""); setNewPrice(""); setNewStock("0"); }
                 )}
@@ -119,20 +126,31 @@ function App() {
         </div>
       </main>
 
-      {/* Modals */}
       <EditPriceModal
         isOpen={modals.priceModal.isOpen}
         productName={modals.priceModal.name}
         currentPrice={modals.priceModal.price}
-        onConfirm={(newPrice) => inventory.handleConfirmPrice(modals.priceModal.id, modals.priceModal.name, newPrice)}
+        onConfirm={(newPrice) => inventory.handleConfirmPrice(
+          modals.priceModal.id,
+          modals.priceModal.name,
+          newPrice
+        )}
         onClose={modals.closePriceModal}
       />
+
       <DeleteConfirmModal
         isOpen={modals.deleteModal.isOpen}
         productName={modals.deleteModal.name}
-        onConfirm={() => inventory.handleConfirmDelete(modals.deleteModal.id, modals.deleteModal.name)}
+        onConfirm={handleConfirmDelete}
         onClose={modals.closeDeleteModal}
       />
+
+      <DeleteSuccessModal
+        isOpen={deleteSuccess.isOpen}
+        productName={deleteSuccess.name}
+        onClose={() => setDeleteSuccess({ isOpen: false, name: "" })}
+      />
+
       <ImageUploadModal
         isOpen={modals.imageModal.isOpen}
         productId={modals.imageModal.id}
