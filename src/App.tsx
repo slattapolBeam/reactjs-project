@@ -16,7 +16,7 @@ import { useAuth } from "./hooks/Useauth";
 import { useInventory } from "./hooks/Useinventory";
 import { useModals } from "./hooks/Usemodals";
 import { useRealtimeOrders } from "./hooks/UseRealtimeOrders";
-import { useOrders } from "./hooks/Useorders";
+import { useOrders } from "./hooks/useOrders";
 
 type View = "inventory" | "logs" | "dashboard" | "orders";
 
